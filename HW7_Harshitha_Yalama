@@ -1,0 +1,95 @@
+import unittest
+
+class TeamMember:
+    def __init__(self, id=0, minDailyHours=0, maxDailyHours=0, ceremonyHours=0, daysOff=0):
+        self.memberId = id
+        self.minDailyHours = minDailyHours
+        self.maxDailyHours = maxDailyHours
+        self.ceremonyHours = ceremonyHours
+        self.daysOff = daysOff
+
+    def calculateIndividualCapacity(self, members, sprintLength):
+        if not members or sprintLength <= 0:
+            return {}
+
+        minCapacities = []
+        maxCapacities = []
+        for member in members:
+            availableDays = sprintLength - member.daysOff
+            minAvailableHours = availableDays * (member.minDailyHours - member.ceremonyHours)
+            maxAvailableHours = availableDays * (member.maxDailyHours - member.ceremonyHours)  # Corrected formula
+            minCapacities.append(minAvailableHours)
+            maxCapacities.append(maxAvailableHours)
+
+        capacities = {"minimum": minCapacities, "maximum": maxCapacities}
+        return capacities
+
+    def calculateTeamCapacity(self, individualCapacities):
+        if not individualCapacities:
+            return "No individual capacities provided."
+        minTeamCapacity = sum(individualCapacities["minimum"])
+        maxTeamCapacity = sum(individualCapacities["maximum"])
+        teamCapacityRange = f"{minTeamCapacity} - {maxTeamCapacity}"
+        return teamCapacityRange
+
+    @staticmethod
+    def printIndividualCapacities(members, capacityMap):
+        if not members:
+            print("No team members provided.")
+            return
+
+        print("| %-20s | %-20s | %-20s | %-20s | %-30s |" % ("Member ID", "Daily Hours", "Ceremony Hours",
+                                                             "Days Off", "Available Effort-Hours range"))
+        print("|----------------------|----------------------|----------------------|----------------------|--------------------------------|")
+        for member, (min_capacity, max_capacity) in zip(members, zip(capacityMap["minimum"], capacityMap["maximum"])):
+            dailyHourRange = f"{member.minDailyHours} - {member.maxDailyHours}"
+            print("| %-20s | %-20s | %-20s | %-20s | %-30s |" % (member.memberId, dailyHourRange,
+                                                                 member.ceremonyHours, member.daysOff,
+                                                                 f"{min_capacity} - {max_capacity}"))
+
+
+def calculateAverageVelocity(sprintPoints):
+    if not sprintPoints:
+        return 0.0
+
+    totalPoints = sum(int(points) for points in sprintPoints)
+    return totalPoints / len(sprintPoints)
+
+
+class TestFeatureA(unittest.TestCase):
+    def test_calculateAvgVelocity_emptyInput(self):
+        self.assertEqual(calculateAverageVelocity([]), 0)
+
+    def test_calculateAvgVelocity_singleInput(self):
+        self.assertEqual(calculateAverageVelocity(["5"]), 5.0)
+
+    def test_calculateAvgVelocity_multipleInputs(self):
+        self.assertEqual(calculateAverageVelocity(["3", "5", "7"]), 5.0)
+
+class TestFeatureB(unittest.TestCase):
+    def test_calculateIndividualCapacity_emptyInput(self):
+        memberObj = TeamMember()
+        self.assertEqual(memberObj.calculateIndividualCapacity([], 10), {})
+
+    def test_calculateIndividualCapacity_validInput(self):
+        members = [TeamMember(id=1, minDailyHours=8, maxDailyHours=8, ceremonyHours=1, daysOff=0),
+                   TeamMember(id=2, minDailyHours=8, maxDailyHours=9, ceremonyHours=1, daysOff=2),
+                   TeamMember(id=3, minDailyHours=7, maxDailyHours=8, ceremonyHours=1, daysOff=1)]
+        sprintLength = 10
+        memberObj = TeamMember()
+        capacities = memberObj.calculateIndividualCapacity(members, sprintLength)
+        self.assertEqual(capacities['minimum'], [70, 56, 54])  # Updated expected values
+        self.assertEqual(capacities['maximum'], [70, 64, 63])  # Updated expected values
+
+    def test_calculateTeamCapacity_emptyInput(self):
+        memberObj = TeamMember()
+        self.assertEqual(memberObj.calculateTeamCapacity({}), "No individual capacities provided.")
+
+    def test_calculateTeamCapacity_validInput(self):
+        individualCapacities = {"minimum": [40, 48], "maximum": [54, 72]}
+        memberObj = TeamMember()
+        team_capacity_range = memberObj.calculateTeamCapacity(individualCapacities)
+        self.assertEqual(team_capacity_range, '88 - 126')  # Corrected expected value
+
+if __name__ == "__main__":
+    unittest.main()
